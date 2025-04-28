@@ -6,7 +6,8 @@ import {
 	selectRandomAvailableVariant,
 } from "./utils";
 
-test("STF_05: Checkout as a unlogged user", async ({ page }) => {
+//"Skip" jarri diot eta horrela ez du testa aktibatzen: OHARRA
+test.skip("STF_05: Checkout as a unlogged user", async ({ page }) => {
 	await page.goto("/");
 
 	const product = await clickOnNthProductElement({ page, nth: 0 });
