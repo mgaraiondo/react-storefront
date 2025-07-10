@@ -1,9 +1,16 @@
 import { loadEnvConfig } from "@next/env";
 import type { CodegenConfig } from "@graphql-codegen/cli";
 
+declare const process: {
+	env: Record<string, string | undefined>;
+	cwd(): string;
+	exit(code: number): never;
+  };
+  
 loadEnvConfig(process.cwd());
 
-let schemaUrl = process.env.NEXT_PUBLIC_SALEOR_API_URL;
+// Usar la URL de la API desde la variable de entorno, o usar la URL interna de Docker como fallback
+let schemaUrl = process.env.NEXT_PUBLIC_SALEOR_API_URL || "http://api:8000/graphql/";
 
 if (process.env.GITHUB_ACTION === "generate-schema-from-file") {
 	schemaUrl = "schema.graphql";
@@ -16,6 +23,8 @@ if (!schemaUrl) {
 	console.error("Follow development instructions in the README.md file.");
 	process.exit(1);
 }
+
+console.log(`Using GraphQL schema URL: ${schemaUrl}`);
 
 const config: CodegenConfig = {
 	overwrite: true,
