@@ -17,7 +17,7 @@ export async function Footer({ channel }: { channel: string }) {
 					// and use app token instead
 					Authorization: `Bearer ${process.env.SALEOR_APP_TOKEN}`,
 				},
-		  })
+			})
 		: null;
 	const currentYear = new Date().getFullYear();
 
@@ -71,6 +71,22 @@ export async function Footer({ channel }: { channel: string }) {
 							</div>
 						);
 					})}
+
+					{/* Añadimos una columna adicional para enlaces de cuenta */}
+					<div>
+						<h3 className="text-sm font-semibold text-neutral-900">Erabiltzaile kontua</h3>
+						<ul className="mt-4 space-y-4 [&>li]:text-neutral-500">
+							<li className="text-sm">
+								<LinkWithChannel href="/login">Saioa hasi</LinkWithChannel>
+							</li>
+							<li className="text-sm">
+								<LinkWithChannel href="/register">Erregistratu</LinkWithChannel>
+							</li>
+							<li className="text-sm">
+								<LinkWithChannel href="/orders">Nire eskaerak</LinkWithChannel>
+							</li>
+						</ul>
+					</div>
 				</div>
 
 				{channels?.channels && (

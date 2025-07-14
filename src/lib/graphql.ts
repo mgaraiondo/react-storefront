@@ -55,7 +55,7 @@ export async function executeGraphQL<Result, Variables>(
 
 			// Configuración especial para fetch en SSR
 			const controller = new AbortController();
-			const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 segundos de timeout
+			const timeoutId = setTimeout(() => controller.abort(), 10000); // Aumentar timeout a 10 segundos
 
 			response = await fetch(ssrApiUrl, {
 				...input,
@@ -72,18 +72,43 @@ export async function executeGraphQL<Result, Variables>(
 		} catch (error) {
 			console.error("Error en fetch SSR:", error);
 
-			// Si falla, devolvemos un objeto vacío para permitir que ISR continúe
-			console.log("Devolviendo datos vacíos para permitir ISR");
-			// Retornamos un objeto vacío tipado correctamente
-			return {} as Result;
+			// Si falla, intentamos con localhost como fallback
+			try {
+				console.log("Intentando con localhost como fallback");
+				const fallbackUrl = "http://localhost:8000/graphql/";
+
+				response = await fetch(fallbackUrl, {
+					...input,
+					headers: {
+						...input.headers,
+						Connection: "keep-alive",
+						"User-Agent": "NextJS-SSR-Fetch-Fallback",
+					},
+				});
+
+				console.log("Conexión fallback exitosa");
+			} catch (fallbackError) {
+				console.error("Error en fetch fallback:", fallbackError);
+
+				// Si ambos fallan, devolvemos un objeto vacío para permitir que ISR continúe
+				console.log("Devolviendo datos vacíos para permitir ISR");
+				// Retornamos un objeto vacío tipado correctamente
+				return {} as Result;
+			}
 		}
 	} else {
 		console.log("CSR: intentando fetch a", process.env.NEXT_PUBLIC_SALEOR_API_URL);
-		console.log("CLIENT: intentando fetch a", process.env.NEXT_PUBLIC_SALEOR_API_URL);
 
-		// En el cliente (navegador), usamos la URL relativa o la URL pública
-		// que debería ser accesible desde el navegador
-		response = await fetch(process.env.NEXT_PUBLIC_SALEOR_API_URL, input);
+		try {
+			// En el cliente (navegador), intentamos primero con la URL relativa
+			response = await fetch("/graphql/", input);
+		} catch (error) {
+			console.error("Error en fetch relativo:", error);
+
+			// Si falla, intentamos con la URL completa
+			console.log("Intentando con URL completa:", process.env.NEXT_PUBLIC_SALEOR_API_URL);
+			response = await fetch(process.env.NEXT_PUBLIC_SALEOR_API_URL!, input);
+		}
 	}
 
 	if (!response.ok) {
