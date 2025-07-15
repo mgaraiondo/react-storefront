@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { ProductListPaginatedDocument } from "@/gql/graphql";
+import { ProductListPaginatedDocument, type ProductListPaginatedQuery, type Exact } from "@/gql/graphql";
 import { executeGraphQL } from "@/lib/graphql";
 import { Pagination } from "@/ui/components/Pagination";
 import { ProductList } from "@/ui/components/ProductList";
@@ -20,18 +20,25 @@ export default async function Page(props: {
 	const params = await props.params;
 	const cursor = typeof searchParams.cursor === "string" ? searchParams.cursor : null;
 
-	const { products } = await executeGraphQL(ProductListPaginatedDocument, {
+	const data = await executeGraphQL<
+		ProductListPaginatedQuery,
+		Exact<{ first: number; after: string | null; channel: string }>
+	>({
+		query: ProductListPaginatedDocument.toString(),
 		variables: {
 			first: ProductsPerPage,
 			after: cursor,
 			channel: params.channel,
 		},
-		revalidate: 60,
+		cache: "force-cache",
 	});
 
-	if (!products) {
+	if (!data.products) {
 		notFound();
 	}
+
+	// Ahora sabemos que data.products no es null
+	const products = data.products;
 
 	const newSearchParams = new URLSearchParams({
 		...(products.pageInfo.endCursor && { cursor: products.pageInfo.endCursor }),

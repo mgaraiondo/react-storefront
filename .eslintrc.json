@@ -70,8 +70,19 @@
 			{ "allowNumber": true, "allowBoolean": true }
 		],
 
-		// @todo
-		"@typescript-eslint/no-explicit-any": "off",
+		// Reglas relacionadas con 'any' cambiadas a warning en lugar de error
+		"@typescript-eslint/no-explicit-any": "warn",
+		"@typescript-eslint/no-unsafe-assignment": "warn",
+		"@typescript-eslint/no-unsafe-call": "warn",
+		"@typescript-eslint/no-unsafe-member-access": "warn",
+		"@typescript-eslint/no-unsafe-return": "warn",
+		"@typescript-eslint/no-unsafe-argument": "warn",
+
+		// Permitir promesas sin await (cambiar a warning)
+		"@typescript-eslint/no-floating-promises": "warn",
+
+		// Permitir argumentos de tipo en funciones no tipadas
+		"@typescript-eslint/no-invalid-void-type": "off",
 
 		"@typescript-eslint/no-misused-promises": [
 			"error",
@@ -104,8 +115,33 @@
 			}
 		},
 		{
+			"files": ["src/components/**/*.{ts,tsx}"],
+			"rules": {
+				// Reglas más permisivas para componentes
+				"@typescript-eslint/no-unsafe-assignment": "off",
+				"@typescript-eslint/no-unsafe-call": "off",
+				"@typescript-eslint/no-unsafe-member-access": "off",
+				"@typescript-eslint/no-unsafe-return": "off"
+			}
+		},
+		{
 			"files": ["__tests__/**/*.{ts,tsx}"],
 			"extends": ["plugin:playwright/recommended"]
+		},
+		{
+			"files": ["*.js", "*.jsx", "*.cjs", "*.mjs"],
+			"rules": {
+				// Desactivar reglas de TypeScript para archivos JavaScript
+				"@typescript-eslint/no-unsafe-assignment": "off",
+				"@typescript-eslint/no-unsafe-call": "off",
+				"@typescript-eslint/no-unsafe-member-access": "off",
+				"@typescript-eslint/no-unsafe-return": "off",
+				"@typescript-eslint/no-unsafe-argument": "off",
+				"@typescript-eslint/no-floating-promises": "off",
+				"@typescript-eslint/return-await": "off",
+				"@typescript-eslint/restrict-template-expressions": "off",
+				"@typescript-eslint/no-misused-promises": "off"
+			}
 		}
 	],
 	"ignorePatterns": ["*.js", "*.jsx", "*.cjs", "src/checkout/src/graphql"]

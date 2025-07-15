@@ -1,4 +1,8 @@
-import { ProductListByCollectionDocument } from "@/gql/graphql";
+import {
+	ProductListByCollectionDocument,
+	type ProductListByCollectionQuery,
+	type Exact,
+} from "@/gql/graphql";
 import { executeGraphQL } from "@/lib/graphql";
 import { ProductList } from "@/ui/components/ProductList";
 
@@ -10,12 +14,22 @@ export const metadata = {
 
 export default async function Page(props: { params: Promise<{ channel: string }> }) {
 	const params = await props.params;
-	const data = await executeGraphQL(ProductListByCollectionDocument, {
+
+	// Validar el canal y usar un valor por defecto seguro si es inválido
+	const safeChannel =
+		params.channel && typeof params.channel === "string" && !params.channel.includes(".js")
+			? params.channel
+			: "default"; // Usar 'default' como valor seguro
+
+	console.log("Page: Usando canal:", safeChannel);
+
+	const data = await executeGraphQL<ProductListByCollectionQuery, Exact<{ slug: string; channel: string }>>({
+		query: ProductListByCollectionDocument.toString(),
 		variables: {
 			slug: "featured-products",
-			channel: params.channel,
+			channel: safeChannel,
 		},
-		revalidate: 60,
+		cache: "force-cache",
 	});
 
 	if (!data.collection?.products) {

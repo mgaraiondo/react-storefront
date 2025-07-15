@@ -1,150 +1,171 @@
-import { invariant } from "ts-invariant";
-import { type TypedDocumentString } from "../gql/graphql";
+// Archivo simplificado para desarrollo inicial
 
-type GraphQLErrorResponse = {
-	errors: readonly {
-		message: string;
-	}[];
+export type TypedDocumentString<Result = {}, Variables = {}> = string & {
+	__apiType?: (variables: Variables) => Result;
 };
 
-/**
- * GraphQL response type
- */
-type GraphQLResponse<T> = { data: T } | GraphQLErrorResponse;
+export interface GraphQLError {
+	message: string;
+	locations?: { line: number; column: number }[];
+	path?: string[];
+	extensions?: Record<string, unknown>;
+}
 
+export interface GraphQLResponse<T> {
+	data?: T;
+	errors?: GraphQLError[];
+}
+
+// Interfaz para opciones de la petición GraphQL
+export interface GraphQLRequestOptions<Variables> {
+	query: string | TypedDocumentString<any, Variables>;
+	variables?: Variables;
+	headers?: HeadersInit;
+	cache?: RequestCache;
+	requireAuth?: boolean; // Nueva opción para indicar si la petición requiere autenticación
+}
+
+// Función que acepta tanto un documento GraphQL directamente como un objeto con una propiedad query
 export async function executeGraphQL<Result, Variables>(
-	operation: TypedDocumentString<Result, Variables>,
-	options: {
-		headers?: HeadersInit;
-		cache?: RequestCache;
-		revalidate?: number;
-		withAuth?: boolean;
-	} & (Variables extends Record<string, never> ? { variables?: never } : { variables: Variables }),
+	queryOrOptions: string | TypedDocumentString<Result, Variables> | GraphQLRequestOptions<Variables>,
+	optionsOrVariables?:
+		| {
+				variables?: Variables;
+				headers?: HeadersInit;
+				cache?: RequestCache;
+				requireAuth?: boolean;
+		  }
+		| Variables,
 ): Promise<Result> {
-	invariant(process.env.NEXT_PUBLIC_SALEOR_API_URL, "Missing NEXT_PUBLIC_SALEOR_API_URL env variable");
-	const { variables, headers, cache, revalidate } = options;
+	// Normalizar los parámetros para manejar ambos estilos de llamada
+	let query: string;
+	let variables: Variables | undefined;
+	let headers: HeadersInit | undefined;
+	let cache: RequestCache = "force-cache";
+	let requireAuth: boolean = false; // Por defecto, no requerir autenticación
 
-	const input = {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-			...headers,
-		},
-		body: JSON.stringify({
-			query: operation.toString(),
-			...(variables && { variables }),
-		}),
-		cache: cache,
-		next: { revalidate },
+	if (typeof queryOrOptions === "string") {
+		// Caso 1: executeGraphQL(query, { variables, headers, cache })
+		query = queryOrOptions;
+		if (optionsOrVariables) {
+			if (typeof optionsOrVariables === "object") {
+				if ("variables" in optionsOrVariables) {
+					// Es un objeto de opciones
+					variables = optionsOrVariables.variables;
+					headers = optionsOrVariables.headers;
+					if (optionsOrVariables.cache) cache = optionsOrVariables.cache;
+					if (optionsOrVariables.requireAuth) requireAuth = optionsOrVariables.requireAuth;
+				} else {
+					// Es directamente un objeto de variables
+					variables = optionsOrVariables as Variables;
+				}
+			}
+		}
+	} else if ("query" in queryOrOptions) {
+		// Caso 2: executeGraphQL({ query, variables, headers, cache })
+		const queryValue = queryOrOptions.query;
+		if (typeof queryValue === "string") {
+			query = queryValue;
+		} else if (queryValue && typeof queryValue === "object") {
+			// Si es un objeto con método toString (como los documentos de graphql-tag)
+			query = String(queryValue);
+		} else {
+			query = "";
+		}
+		variables = queryOrOptions.variables;
+		headers = queryOrOptions.headers;
+		if (queryOrOptions.cache) cache = queryOrOptions.cache;
+		if (queryOrOptions.requireAuth) requireAuth = queryOrOptions.requireAuth;
+	} else {
+		throw new Error("Invalid queryOrOptions: expected string or object with query property");
+	}
+
+	// Verificar que query no sea undefined
+	if (!query) {
+		console.error("GraphQL query is undefined", {
+			queryOrOptions: typeof queryOrOptions === "string" ? "string-document" : "options-object",
+			queryValue: query,
+			queryType: typeof query,
+		});
+		throw new Error(
+			"GraphQL query is undefined - Comprueba que los documentos GraphQL estén correctamente importados y generados",
+		);
+	}
+
+	// Usar una URL que funcione tanto en el servidor como en el cliente
+	// En el servidor (Node.js), usamos http://api:8000/graphql/
+	// En el cliente (navegador), usamos /graphql/ (relativo a la URL actual)
+	const apiUrl =
+		typeof window === "undefined"
+			? "http://api:8000/graphql/" // URL para el servidor (Docker)
+			: "/graphql/"; // URL relativa para el cliente (navegador)
+
+	// Obtener el token de autenticación de las variables de entorno
+	const authToken = process.env.SALEOR_APP_TOKEN;
+
+	// Preparar las cabeceras con el token de autenticación si está disponible
+	const authHeaders: Record<string, string> = {
+		"Content-Type": "application/json",
 	};
 
-	// Solución para manejar diferentes entornos (servidor vs cliente)
-	let response;
-
-	// Verificar si estamos en el navegador o en el servidor
-	const isServer = typeof window === "undefined";
-
-	if (isServer) {
-		console.log("SSR: Usando estrategia robusta para ISR/SSR");
-
-		// En SSR, intentamos con una estrategia específica para ISR
-		try {
-			// 1. Intentar con la URL específica para SSR
-			const ssrApiUrl = "http://api:8000/graphql/";
-			console.log(`Intentando con URL específica para SSR: ${ssrApiUrl}`);
-
-			// Configuración especial para fetch en SSR
-			const controller = new AbortController();
-			const timeoutId = setTimeout(() => controller.abort(), 10000); // Aumentar timeout a 10 segundos
-
-			response = await fetch(ssrApiUrl, {
-				...input,
-				signal: controller.signal,
-				headers: {
-					...input.headers,
-					Connection: "keep-alive",
-					"User-Agent": "NextJS-SSR-Fetch",
-				},
-			});
-
-			clearTimeout(timeoutId);
-			console.log("Conexión SSR exitosa");
-		} catch (error) {
-			console.error("Error en fetch SSR:", error);
-
-			// Si falla, intentamos con localhost como fallback
-			try {
-				console.log("Intentando con localhost como fallback");
-				const fallbackUrl = "http://localhost:8000/graphql/";
-
-				response = await fetch(fallbackUrl, {
-					...input,
-					headers: {
-						...input.headers,
-						Connection: "keep-alive",
-						"User-Agent": "NextJS-SSR-Fetch-Fallback",
-					},
-				});
-
-				console.log("Conexión fallback exitosa");
-			} catch (fallbackError) {
-				console.error("Error en fetch fallback:", fallbackError);
-
-				// Si ambos fallan, devolvemos un objeto vacío para permitir que ISR continúe
-				console.log("Devolviendo datos vacíos para permitir ISR");
-				// Retornamos un objeto vacío tipado correctamente
-				return {} as Result;
+	// Copiar las cabeceras personalizadas si existen
+	if (headers) {
+		Object.entries(headers).forEach(([key, value]) => {
+			if (typeof value === "string") {
+				authHeaders[key] = value;
 			}
-		}
-	} else {
-		console.log("CSR: intentando fetch a", process.env.NEXT_PUBLIC_SALEOR_API_URL);
-
-		try {
-			// En el cliente (navegador), intentamos primero con la URL relativa
-			response = await fetch("/graphql/", input);
-		} catch (error) {
-			console.error("Error en fetch relativo:", error);
-
-			// Si falla, intentamos con la URL completa
-			console.log("Intentando con URL completa:", process.env.NEXT_PUBLIC_SALEOR_API_URL);
-			response = await fetch(process.env.NEXT_PUBLIC_SALEOR_API_URL!, input);
-		}
+		});
 	}
 
-	if (!response.ok) {
-		const body = await (async () => {
-			try {
-				return await response.text();
-			} catch {
-				return "";
-			}
-		})();
-		console.error(input.body);
-		throw new HTTPError(response, body);
+	// Añadir el token de autenticación si está disponible y se requiere autenticación
+	if (authToken && (requireAuth || process.env.ALWAYS_AUTH === "true")) {
+		authHeaders["Authorization"] = `Bearer ${authToken}`;
+		console.log("executeGraphQL: Usando token de autenticación");
+	} else if (requireAuth) {
+		console.warn(
+			"executeGraphQL: Se requiere autenticación pero no se encontró SALEOR_APP_TOKEN en las variables de entorno",
+		);
 	}
 
-	const body = (await response.json()) as GraphQLResponse<Result>;
+	// Logs de depuración
+	console.log("executeGraphQL: Enviando petición a", apiUrl);
+	console.log("executeGraphQL: Query:", query.toString());
+	console.log("executeGraphQL: Variables:", JSON.stringify(variables));
 
-	if ("errors" in body) {
-		throw new GraphQLError(body);
+	// Usar fetch directamente
+	const result = await fetch(apiUrl, {
+		method: "POST",
+		headers: authHeaders,
+		body: JSON.stringify({
+			query: query.toString(),
+			...(variables && { variables }),
+		}),
+		cache,
+	});
+
+	if (!result.ok) {
+		console.error("executeGraphQL: Error HTTP", result.status, result.statusText);
+		try {
+			const errorBody = await result.text();
+			console.error("executeGraphQL: Cuerpo de la respuesta de error:", errorBody);
+		} catch (e) {
+			console.error("executeGraphQL: No se pudo leer el cuerpo de la respuesta de error");
+		}
+		throw new Error(`HTTP error! Status: ${result.status}`);
+	}
+
+	const body = (await result.json()) as GraphQLResponse<Result>;
+
+	console.log("executeGraphQL: Respuesta recibida:", body);
+
+	if (body.errors) {
+		console.error("GraphQL errors", body.errors);
+		throw new Error(body.errors.map((e) => e.message).join(", "));
+	}
+
+	if (!body.data) {
+		throw new Error("No data returned from GraphQL query");
 	}
 
 	return body.data;
-}
-
-class GraphQLError extends Error {
-	constructor(public errorResponse: GraphQLErrorResponse) {
-		const message = errorResponse.errors.map((error) => error.message).join("\n");
-		super(message);
-		this.name = this.constructor.name;
-		Object.setPrototypeOf(this, new.target.prototype);
-	}
-}
-class HTTPError extends Error {
-	constructor(response: Response, body: string) {
-		const message = `HTTP error ${response.status}: ${response.statusText}\n${body}`;
-		super(message);
-		this.name = this.constructor.name;
-		Object.setPrototypeOf(this, new.target.prototype);
-	}
 }

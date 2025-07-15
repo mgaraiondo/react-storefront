@@ -1,0 +1,23 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Instalar dependencias necesarias
+RUN apk add --no-cache libc6-compat
+
+# Configurar e instalar pnpm globalmente
+RUN npm install -g pnpm@9.6.0
+# Actualizar browserslist-db
+RUN npx update-browserslist-db@latest
+
+# Establecer variables de entorno
+ARG NEXT_PUBLIC_SALEOR_API_URL
+ENV NEXT_PUBLIC_SALEOR_API_URL=${NEXT_PUBLIC_SALEOR_API_URL}
+ARG NEXT_PUBLIC_STOREFRONT_URL
+ENV NEXT_PUBLIC_STOREFRONT_URL=${NEXT_PUBLIC_STOREFRONT_URL}
+
+# Exponer el puerto
+EXPOSE 3000
+
+# Comando por defecto para desarrollo
+CMD ["sh", "-c", "pnpm install && pnpm dev"]

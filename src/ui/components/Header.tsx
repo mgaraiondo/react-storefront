@@ -1,5 +1,6 @@
 import { Logo } from "./Logo";
 import { Nav } from "./nav/Nav";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 export function Header({ channel }: { channel: string }) {
 	return (
@@ -7,7 +8,10 @@ export function Header({ channel }: { channel: string }) {
 			<div className="mx-auto max-w-7xl px-3 sm:px-8">
 				<div className="flex h-16 justify-between gap-4 md:gap-8">
 					<Logo />
-					<Nav channel={channel} />
+					<div className="flex items-center gap-4">
+						<LanguageSwitcher />
+						<Nav channel={channel} />
+					</div>
 				</div>
 			</div>
 		</header>

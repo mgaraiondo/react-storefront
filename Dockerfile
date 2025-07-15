@@ -11,7 +11,7 @@ ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
 
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm i --no-frozen-lockfile --prefer-offline
+RUN pnpm i --frozen-lockfile --prefer-offline
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -29,8 +29,6 @@ ARG NEXT_PUBLIC_SALEOR_API_URL
 ENV NEXT_PUBLIC_SALEOR_API_URL=${NEXT_PUBLIC_SALEOR_API_URL}
 ARG NEXT_PUBLIC_STOREFRONT_URL
 ENV NEXT_PUBLIC_STOREFRONT_URL=${NEXT_PUBLIC_STOREFRONT_URL}
-
-ENV SKIP_GRAPHQL_CODEGEN=true
 
 # Get PNPM version from package.json
 ENV PNPM_HOME="/pnpm"

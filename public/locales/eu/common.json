@@ -1,0 +1,30 @@
+{
+	"welcome": "Ongi etorri",
+	"home": "Hasiera",
+	"products": "Produktuak",
+	"categories": "Kategoriak",
+	"collections": "Bildumak",
+	"search": "Bilatu",
+	"account": "Kontua",
+	"login": "Saioa hasi",
+	"logout": "Saioa amaitu",
+	"register": "Erregistratu",
+	"cart": "Saskia",
+	"checkout": "Ordainketa",
+	"price": "Prezioa",
+	"currency": "€",
+	"addToCart": "Saskira gehitu",
+	"viewDetails": "Xehetasunak ikusi",
+	"outOfStock": "Stocketik kanpo",
+	"inStock": "Stockean",
+	"description": "Deskribapena",
+	"attributes": "Ezaugarriak",
+	"relatedProducts": "Erlazionatutako produktuak",
+	"footer": {
+		"about": "Guri buruz",
+		"contact": "Kontaktua",
+		"terms": "Baldintzak",
+		"privacy": "Pribatutasuna",
+		"copyright": "© {{year}} Ornitu. Eskubide guztiak erreserbatuak."
+	}
+}

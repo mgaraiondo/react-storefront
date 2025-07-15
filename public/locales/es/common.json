@@ -1,0 +1,30 @@
+{
+	"welcome": "Bienvenido",
+	"home": "Inicio",
+	"products": "Productos",
+	"categories": "Categorías",
+	"collections": "Colecciones",
+	"search": "Buscar",
+	"account": "Cuenta",
+	"login": "Iniciar sesión",
+	"logout": "Cerrar sesión",
+	"register": "Registrarse",
+	"cart": "Carrito",
+	"checkout": "Pago",
+	"price": "Precio",
+	"currency": "€",
+	"addToCart": "Añadir al carrito",
+	"viewDetails": "Ver detalles",
+	"outOfStock": "Agotado",
+	"inStock": "En stock",
+	"description": "Descripción",
+	"attributes": "Atributos",
+	"relatedProducts": "Productos relacionados",
+	"footer": {
+		"about": "Sobre nosotros",
+		"contact": "Contacto",
+		"terms": "Términos",
+		"privacy": "Privacidad",
+		"copyright": "© {{year}} Ornitu. Todos los derechos reservados."
+	}
+}
