@@ -1,9 +1,8 @@
 import React from "react";
 import Link from "next/link";
-import Image from "next/image";
 import gql from "graphql-tag";
 import { LinkWithChannel } from "../atoms/LinkWithChannel";
-import { ChannelSelect } from "./ChannelSelect";
+//import { ChannelSelect } from "./ChannelSelect";
 import { executeGraphQL } from "@/lib/graphql";
 
 // Definir tipos para los datos de la consulta
@@ -110,7 +109,7 @@ export const Footer = async ({ channel }: { channel: string }) => {
 	try {
 		// Ejecutar ambas consultas en paralelo
 		// La consulta de canales requiere autenticación, pero ahora executeGraphQL lo maneja automáticamente
-		const [footerLinks, channelsData] = await Promise.all([
+		const [footerLinks] = await Promise.all([
 			executeGraphQL<MenuGetBySlugResult, { slug: string; channel: string }>({
 				query: footerQueryString,
 				variables: { slug: "footer", channel: safeChannel },
@@ -180,6 +179,7 @@ export const Footer = async ({ channel }: { channel: string }) => {
 						})}
 					</div>
 
+					{/* Componente de cambio de moneda desactivado temporalmente
 					{channelsData && channelsData.channels && (
 						<div className="mb-4 text-neutral-500">
 							<label>
@@ -188,18 +188,20 @@ export const Footer = async ({ channel }: { channel: string }) => {
 							</label>
 						</div>
 					)}
+					*/}
 
 					<div className="flex flex-col justify-between border-t border-neutral-200 py-10 sm:flex-row">
-						<p className="text-sm text-neutral-500">Copyright &copy; {currentYear} Your Store, Inc.</p>
-						<p className="flex gap-1 text-sm text-neutral-500">
-							Powered by{" "}
-							<Link target={"_blank"} href={"https://saleor.io/"}>
-								Saleor
-							</Link>{" "}
-							<Link href={"https://github.com/saleor/saleor"} target={"_blank"} className={"opacity-30"}>
-								<Image alt="Saleor github repository" height={20} width={20} src={"/github-mark.svg"} />
-							</Link>
-						</p>
+						<p className="text-sm text-neutral-500">Copyright &copy; {currentYear} Garaiondo Bastida SL</p>
+						<div className="flex flex-col sm:flex-row sm:items-center sm:gap-6">
+							<div className="mt-2 flex gap-4 sm:mt-0">
+								<Link href={`/${safeChannel}/register`} className="text-sm text-blue-600 hover:text-blue-800">
+									Erregistratu
+								</Link>
+								<Link href={`/${safeChannel}/login`} className="text-sm text-blue-600 hover:text-blue-800">
+									Hasi saioa
+								</Link>
+							</div>
+						</div>
 					</div>
 				</div>
 			</footer>
@@ -287,15 +289,14 @@ export const Footer = async ({ channel }: { channel: string }) => {
 
 					<div className="flex flex-1 flex-col gap-2">
 						<p className="text-sm text-neutral-500"> {currentYear} Ornitu</p>
-						<p className="flex gap-1 text-sm text-neutral-500">
-							Powered by{" "}
-							<Link target={"_blank"} href={"https://saleor.io/"}>
-								Saleor
-							</Link>{" "}
-							<Link href={"https://github.com/saleor/saleor"} target={"_blank"} className={"opacity-30"}>
-								<Image alt="Saleor github repository" height={20} width={20} src={"/github-mark.svg"} />
+						<div className="mt-2 flex gap-4">
+							<Link href={`/${safeChannel}/register`} className="text-sm text-blue-600 hover:text-blue-800">
+								Erregistratu
 							</Link>
-						</p>
+							<Link href={`/${safeChannel}/login`} className="text-sm text-blue-600 hover:text-blue-800">
+								Hasi saioa
+							</Link>
+						</div>
 					</div>
 				</div>
 			</footer>
